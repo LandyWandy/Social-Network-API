@@ -1,52 +1,74 @@
-const connection = require('../config/connection');
-const { Post, Tags } = require('../models');
-// Import functions for seed data
-const { getRandomColor, getRandomPost, genRandomIndex } = require('./data');
+// Import necessary modules
+const mongoose = require('mongoose');
 
-// Start the seeding runtime timer
-console.time('seeding');
+// Import your models
+const User = require('./models/User');
+const Thought = require('./models/Thought');
 
-// Creates a connection to mongodb
-connection.once('open', async () => {
-  // Delete the entries in the collection
-  await Post.deleteMany({});
-  await Tags.deleteMany({});
-
-  // Empty arrays for randomly generated posts and tags
-  const tags = [];
-  const posts = [];
-
-  // Function to make a post object and push it into the posts array
-  const makePost = (text) => {
-    posts.push({
-      published: Math.random() < 0.5,
-      text,
-      tags: [tags[genRandomIndex(tags)]._id],
-    });
-  };
-
-  // Create 20 random tags and push them into the tags array
-  for (let i = 0; i < 20; i++) {
-    const tagname = getRandomColor();
-
-    tags.push({
-      tagname,
-      color: tagname,
-    });
-  }
-
-  // Wait for the tags to be inserted into the database
-  await Tags.collection.insertMany(tags);
-
-  // For each of the tags that exist, make a random post of length 50
-  tags.forEach(() => makePost(getRandomPost(50)));
-
-  // Wait for the posts array to be inserted into the database
-  await Post.collection.insertMany(posts);
-
-  // Log out a pretty table for tags and posts, excluding the excessively long text property
-  console.table(tags);
-  console.table(posts, ['published', 'tags', '_id']);
-  console.timeEnd('seeding');
-  process.exit(0);
+// Connect to your MongoDB database
+mongoose.connect('mongodb://localhost/social_network_db', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
 });
+
+// Your seed logic goes here
+
+// Close the connection when you're done
+mongoose.connection.close();
+
+
+const seedDB = async () => {
+  // Start fresh by deleting everything
+  await User.deleteMany({});
+  await Thought.deleteMany({});
+
+  // Create some users
+  const user1 = await User.create({
+    username: 'user1',
+    email: 'user1@example.com',
+  });
+
+  const user2 = await User.create({
+    username: 'user2',
+    email: 'user2@example.com',
+  });
+
+  // Create some thoughts
+  const thought1 = await Thought.create({
+    thoughtText: 'I love coding!',
+    username: user1.username,
+  });
+
+  const thought2 = await Thought.create({
+    thoughtText: 'I love AI!',
+    username: user2.username,
+  });
+
+  // Add thoughts to users
+  user1.thoughts.push(thought1._id);
+  user2.thoughts.push(thought2._id);
+
+  // Save the updated user documents
+  await user1.save();
+  await user2.save();
+
+  // Add reactions to thoughts
+  thought1.reactions.push({
+    reactionBody: 'Great thought!',
+    username: user2.username,
+  });
+
+  thought2.reactions.push({
+    reactionBody: 'Interesting idea!',
+    username: user1.username,
+  });
+
+  // Save the updated thought documents
+  await thought1.save();
+  await thought2.save();
+
+  // Close the connection
+  mongoose.connection.close();
+};
+
+seedDB().catch((error) => console.error(error));
