@@ -1,21 +1,7 @@
-// Import necessary modules
-const mongoose = require('mongoose');
+const connection = require('../config/connection');
+const {User,Thought} = require('../models')
 
-// Import your models
-const User = require('./models/User');
-const Thought = require('./models/Thought');
-
-// Connect to your MongoDB database
-mongoose.connect('mongodb://localhost/social_network_db', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
-
-// Your seed logic goes here
-
-// Close the connection when you're done
-mongoose.connection.close();
-
+connection.on('error', (err) => err);
 
 const seedDB = async () => {
   // Start fresh by deleting everything
@@ -23,52 +9,49 @@ const seedDB = async () => {
   await Thought.deleteMany({});
 
   // Create some users
-  const user1 = await User.create({
-    username: 'user1',
-    email: 'user1@example.com',
-  });
+  const users = [];
+  for (let i = 0; i < 5; i++) {
+    const user = await User.create({
+      username: `user${i+1}`,
+      email: `user${i+1}@example.com`,
+    });
+    users.push(user);
+  }
 
-  const user2 = await User.create({
-    username: 'user2',
-    email: 'user2@example.com',
-  });
+  // Create some thoughts and assign to users
+  const thoughts = [];
+  for (let i = 0; i < 10; i++) {
+    const thought = await Thought.create({
+      thoughtText: `Thought ${i+1}`,
+      username: users[i%5].username, // loop over the 5 users
+    });
 
-  // Create some thoughts
-  const thought1 = await Thought.create({
-    thoughtText: 'I love coding!',
-    username: user1.username,
-  });
+    // Add thought to the user's thoughts array
+    users[i%5].thoughts.push(thought._id);
 
-  const thought2 = await Thought.create({
-    thoughtText: 'I love AI!',
-    username: user2.username,
-  });
+    // Save the updated user document
+    await users[i%5].save();
 
-  // Add thoughts to users
-  user1.thoughts.push(thought1._id);
-  user2.thoughts.push(thought2._id);
-
-  // Save the updated user documents
-  await user1.save();
-  await user2.save();
+    thoughts.push(thought);
+  }
 
   // Add reactions to thoughts
-  thought1.reactions.push({
-    reactionBody: 'Great thought!',
-    username: user2.username,
-  });
+  for (let i = 0; i < 10; i++) {
+    thoughts[i].reactions.push({
+      reactionBody: 'Great thought!',
+      username: users[(i+1)%5].username, // loop over the 5 users
+    },
+    {
+      reactionBody: 'Interesting idea!',
+      username: users[(i+2)%5].username, // loop over the 5 users
+    });
 
-  thought2.reactions.push({
-    reactionBody: 'Interesting idea!',
-    username: user1.username,
-  });
-
-  // Save the updated thought documents
-  await thought1.save();
-  await thought2.save();
+    // Save the updated thought document
+    await thoughts[i].save();
+  }
 
   // Close the connection
-  mongoose.connection.close();
+  connection.close();
 };
 
 seedDB().catch((error) => console.error(error));
