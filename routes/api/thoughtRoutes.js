@@ -32,4 +32,18 @@ router.delete('/:id', async (req, res) => {
   res.json(thought);
 });
 
+router.post('/:id/reactions', async (req, res) => {
+  const thought = await Thought.findById(req.params.id);
+  thought.reactions.push(req.body);
+  await thought.save();
+  res.json(thought);
+});
+
+router.delete('/:id/reactions/:reactionId', async (req, res) => {
+  const thought = await Thought.findById(req.params.id);
+  thought.reactions = thought.reactions.filter(reaction => reaction.reactionId.toString() !== req.params.reactionId);
+  await thought.save();
+  res.json(thought);
+});
+
 module.exports = router;

@@ -32,8 +32,8 @@ router.delete('/:id', async (req, res) => {
 });
 
 // POST to add a new friend to a user's friend list
-router.post('/:userId/friends/:friendId', async (req, res) => {
-  const user = await User.findById(req.params.userId);
+router.post('/:id/friends/:friendId', async (req, res) => {
+  const user = await User.findById(req.params.id);
   if (!user) {
     return res.status(404).json({ message: 'No user with this id!' });
   }
@@ -43,8 +43,8 @@ router.post('/:userId/friends/:friendId', async (req, res) => {
 });
 
 // DELETE to remove a friend from a user's friend list
-router.delete('/:userId/friends/:friendId', async (req, res) => {
-  const user = await User.findById(req.params.userId);
+router.delete('/:id/friends/:friendId', async (req, res) => {
+  const user = await User.findById(req.params.id);
   if (!user) {
     return res.status(404).json({ message: 'No user with this id!' });
   }
